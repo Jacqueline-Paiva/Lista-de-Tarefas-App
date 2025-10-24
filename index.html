@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>To-Do List • Jacqueline Paiva</title>
+  <style>
+    :root{
+      --bg:#0b0d10; --bg2:#0e1318; --card:#12161b; --muted:#2a3139; --muted-2:#1f2731;
+      --text:#e6edf3; --sub:#a9b3bf; --accent:#7c9cff; --green:#36d399; --red:#ff6b6b; --yellow:#ffd166;
+      --shadow: 0 12px 28px rgba(0,0,0,.35);
+      --radius:16px; --radius-lg:22px;
+      --tap-min:48px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--text);
+      font:500 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;
+      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    }
+    .container{max-width:920px;margin-inline:auto;padding:16px}
+    .card{background:var(--card);border:1px solid #1d232c;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hidden{display:none !important}
+    button{border:0;border-radius:14px;padding:12px 14px;font-weight:700;cursor:pointer;min-height:var(--tap-min)}
+    .btn{background:var(--accent); color:#0b0d10}
+    .btn-outline{background:transparent;color:var(--text);border:1px solid var(--muted)}
+    .btn-danger{background:var(--red);color:#0b0d10}
+    a{color:var(--accent);text-decoration:none}
+    input,textarea,select{
+      width:100%;background:#0f141a;border:1px solid #232b35;color:var(--text);
+      padding:12px 14px;border-radius:14px;outline:none;min-height:var(--tap-min)
+    }
+    input::placeholder,textarea::placeholder{color:#6f7a86}
+    label{font-size:.9rem;color:#c9d1d9}
+    .stack{display:flex;flex-direction:column;gap:12px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .grow{flex:1}
+    .space{height:12px}
+
+    /* Header */
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .app-title{font-size:1.4rem;font-weight:900;letter-spacing:.2px}
+    .badge{border:1px solid var(--muted);padding:8px 12px;border-radius:999px;font-size:.85rem;color:#c9d1d9}
+
+    /* Tabs (tarefas) — melhor responsividade e rolagem horizontal se faltar espaço */
+    .tabsRow{
+      position:sticky; top:0; z-index:5; padding:8px 0 10px;
+      background:linear-gradient(180deg, rgba(11,13,16,.95), rgba(11,13,16,.75));
+      backdrop-filter: blur(6px);
+      display:flex; align-items:center; gap:10px; border-bottom:1px solid #182028;
+    }
+    .tabs{display:flex;gap:8px;overflow:auto;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{
+      flex:0 0 auto; padding:10px 14px; border-radius:999px;
+      background:#0f141a; border:1px solid #262f3a; font-weight:800; letter-spacing:.2px;
+      color:var(--text); min-height:var(--tap-min)
+    }
+    .tab.active{background:var(--accent);color:#0b0d10;border-color:transparent}
+    .tabsRow .spacer{flex:1}
+    .btn-add-top{background:var(--green);color:#0b0d10;font-weight:900;border-radius:999px;padding:10px 16px;min-height:var(--tap-min)}
+
+    /* Lista */
+    .list{display:flex;flex-direction:column;gap:12px}
+    .task{
+      display:flex;gap:12px;align-items:flex-start;padding:14px;background:#0f141a;border:1px solid #232b35;border-radius:16px
+    }
+    .task .title{font-weight:800}
+    .task .meta{font-size:.88rem;color:var(--sub);margin-top:2px}
+    .chip{padding:6px 10px;border-radius:999px;font-size:.78rem;border:1px solid var(--muted);color:#c9d1d9}
+    .chip.low{border-color:#2e835f;color:#b6ffe1}
+    .chip.med{border-color:#7b6d26;color:#ffe9a6}
+    .chip.high{border-color:#8a2b2b;color:#ffb3b3}
+
+    /* Auth (login/cadastro) */
+    .center{min-height:100vh;display:grid;place-items:center;padding:16px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.3px}
+    .logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#4ce0b3)}
+    .auth-card{width:100%;max-width:520px;padding:22px}
+    .auth-tabs{display:flex;gap:8px;margin-bottom:16px}
+    .auth-tab{
+      flex:1;padding:10px 14px;border-radius:999px;background:#0f141a;border:1px solid #262f3a;
+      font-weight:800;cursor:pointer;color:var(--text);min-height:var(--tap-min)
+    }
+    .auth-tab.active{background:var(--accent);color:#0b0d10;border-color:transparent}
+
+    /* Modais → bottom-sheet no mobile */
+    .modal{position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.55)}
+    .modal .content{width:100%;max-width:560px}
+    @media (max-width:560px){
+      .modal{align-items:flex-end}
+      .modal .content{border-radius:var(--radius-lg) var(--radius-lg) 12px 12px}
+    }
+
+    /* Grid (dashboard) */
+    .grid{display:grid;gap:12px}
+    @media (min-width:860px){.grid{grid-template-columns:1fr 1fr}}
+    canvas{width:100%;height:240px}
+
+    /* Busca/filtro responsivos */
+    .search{display:flex;gap:8px;width:100%}
+    .filters{display:grid;grid-template-columns:1fr min(160px,45%);gap:10px}
+    @media (max-width:480px){
+      .filters{grid-template-columns:1fr}
+      .btn, .btn-outline, .btn-add-top{padding-block:12px}
+    }
+
+    .muted{color:#9aa6b2;font-size:.92rem}
+  </style>
+</head>
+<body>
+  <!-- LOGIN / CADASTRO -->
+  <section id="auth" class="center">
+    <div class="card auth-card">
+      <div class="logo"><i></i> TODOLIST</div>
+      <div class="space"></div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-tab="login">Entrar</button>
+        <button class="auth-tab" data-auth-tab="signup">Novo cadastro</button>
+      </div>
+
+      <!-- Login -->
+      <form id="loginForm" class="stack" autocomplete="on">
+        <div class="stack">
+          <label for="loginEmail">E-mail</label>
+          <input type="email" id="loginEmail" required placeholder="voce@email.com" />
+        </div>
+        <div class="stack">
+          <label for="loginPass">Senha</label>
+          <input type="password" id="loginPass" required minlength="4" placeholder="••••" />
+        </div>
+        <button class="btn" type="submit">Login</button>
+        <div class="muted">Esqueceu a senha? <a href="#" id="fakeRecover">Recuperar</a></div>
+      </form>
+
+      <!-- Cadastro -->
+      <form id="signupForm" class="stack hidden" autocomplete="on">
+        <div class="stack">
+          <label for="suName">Usuário</label>
+          <input id="suName" required placeholder="Seu nome" />
+        </div>
+        <div class="stack">
+          <label for="suEmail">E-mail</label>
+          <input type="email" id="suEmail" required placeholder="voce@email.com" />
+        </div>
+        <div class="row">
+          <div class="stack grow">
+            <label for="suPass">Senha</label>
+            <input type="password" id="suPass" required minlength="4" placeholder="mín. 4" />
+          </div>
+          <div class="stack grow">
+            <label for="suPass2">Repita a senha</label>
+            <input type="password" id="suPass2" required minlength="4" placeholder="confirmar" />
+          </div>
+        </div>
+        <button class="btn" type="submit">Cadastrar</button>
+        <div class="muted">Seus dados são salvos apenas neste dispositivo.</div>
+      </form>
+    </div>
+  </section>
+
+  <!-- RECUPERAR SENHA -->
+  <section id="recover" class="center hidden">
+    <div class="card auth-card">
+      <div class="logo"><i></i> Recuperar senha</div>
+      <div class="space"></div>
+      <form id="recoverForm" class="stack">
+        <div class="stack">
+          <label for="reEmail">E-mail</label>
+          <input type="email" id="reEmail" required placeholder="voce@email.com" />
+        </div>
+        <button class="btn" type="submit">Enviar link de recuperação</button>
+        <button class="btn-outline" id="backLogin" type="button">Voltar ao login</button>
+        <div class="muted">Mock: exibimos aviso e voltamos ao login.</div>
+      </form>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="app" class="hidden">
+    <div class="container">
+      <header>
+        <div class="app-title">Minhas Tarefas</div>
+        <div class="toolbar">
+          <span id="helloUser" class="badge">Olá, —</span>
+          <button id="goDashboard" class="btn-outline">Desempenho</button>
+          <button id="logout" class="btn-outline">Sair</button>
+        </div>
+      </header>
+
+      <!-- Abas + Adicionar (sticky) -->
+      <div class="tabsRow">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="pending">Pendentes</button>
+          <button class="tab" data-tab="done">Concluídas</button>
+          <button class="tab" data-tab="all">Todas</button>
+        </div>
+        <div class="spacer"></div>
+        <button id="addTop" class="btn-add-top">＋ Adicionar tarefa</button>
+      </div>
+
+      <!-- Busca / Filtro (coluna no mobile) -->
+      <div class="filters" style="margin:10px 0 14px">
+        <input id="search" placeholder="Buscar por título, descrição ou prioridade…" />
+        <select id="priorityFilter">
+          <option value="">Prioridade (todas)</option>
+          <option value="baixa">Baixa</option>
+          <option value="média">Média</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+
+      <div id="emptyState" class="card" style="padding:20px;display:none">
+        Nenhuma tarefa por aqui. Toque em <b>Adicionar tarefa</b> para começar.
+      </div>
+
+      <div id="list" class="list"></div>
+    </div>
+  </section>
+
+  <!-- MODAL: Adicionar/Editar (bottom-sheet) -->
+  <div id="taskModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="content card" style="padding:18px">
+      <h3 id="taskModalTitle" style="margin:4px 0 10px">Adicionar Tarefa</h3>
+      <form id="taskForm" class="stack">
+        <input type="hidden" id="taskId" />
+        <div class="stack">
+          <label for="title">Título</label>
+          <input id="title" required maxlength="120" placeholder="Ex.: Preparar apresentação" />
+        </div>
+        <div class="stack">
+          <label for="desc">Descrição</label>
+          <textarea id="desc" rows="3" placeholder="Detalhes da tarefa"></textarea>
+        </div>
+        <div class="row">
+          <div class="stack grow">
+            <label for="when">Data/Hora</label>
+            <input id="when" type="datetime-local" />
+          </div>
+          <div class="stack grow">
+            <label for="prio">Prioridade</label>
+            <select id="prio" required>
+              <option value="baixa">Baixa</option>
+              <option value="média">Média</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <div class="row" style="gap:8px">
+            <button class="btn" type="submit">Salvar</button>
+            <button class="btn-outline" type="button" id="cancelTask">Cancelar</button>
+          </div>
+          <div class="row" style="gap:8px">
+            <button class="btn-outline hidden" type="button" id="markDone">Concluir</button>
+            <button class="btn-danger hidden" type="button" id="deleteTask">Excluir</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Detalhes -->
+  <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="content card" style="padding:18px">
+      <div class="stack" id="detailBody"></div>
+      <div class="space"></div>
+      <div class="row" style="justify-content:flex-end;gap:8px">
+        <button class="btn-outline" id="detailClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="hidden">
+    <div class="container">
+      <header>
+        <div class="app-title">Meu Desempenho</div>
+        <div class="toolbar">
+          <button id="backToList" class="btn-outline">Voltar</button>
+        </div>
+      </header>
+      <div class="grid">
+        <div class="card" style="padding:16px">
+          <h3 style="margin-top:4px">Concluídas x Pendentes</h3>
+          <canvas id="chartOverall" width="400" height="240" aria-label="Gráfico geral"></canvas>
+          <div id="overallPct" class="muted"></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <h3 style="margin-top:4px">Desempenho da semana</h3>
+          <canvas id="chartWeek" width="400" height="240" aria-label="Gráfico semanal"></canvas>
+          <div id="weekStats" class="muted"></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <h3 style="margin-top:4px">Desempenho do mês</h3>
+          <canvas id="chartMonth" width="400" height="240" aria-label="Gráfico mensal"></canvas>
+          <div id="monthStats" class="muted"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===== Helpers =====
+    const $ = (s)=>document.querySelector(s);
+    const $$ = (s)=>Array.from(document.querySelectorAll(s));
+    const ls = {
+      get(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d } catch{ return d } },
+      set(k,v){ localStorage.setItem(k, JSON.stringify(v)) },
+      del(k){ localStorage.removeItem(k) }
+    };
+    const uid = ()=> crypto.randomUUID?.() || (Date.now()+"_"+Math.random().toString(16).slice(2));
+    const fmtDate = (iso)=> iso ? new Date(iso).toLocaleString() : "—";
+
+    const AUTH_KEY = "todo.auth.v1";
+    const TASKS_KEY = (email)=>`todo.tasks.v1::${email}`;
+
+    function authed(){ return ls.get(AUTH_KEY, null) }
+
+    function ensureAuthUI(){
+      if(authed()){
+        $('#auth').classList.add('hidden');
+        $('#recover').classList.add('hidden');
+        $('#app').classList.remove('hidden');
+        $('#dashboard').classList.add('hidden');
+        $('#helloUser').textContent = `Olá, ${authed().name?.split(' ')[0] || 'usuário'}`;
+        renderList();
+      } else {
+        $('#auth').classList.remove('hidden');
+        $('#recover').classList.add('hidden');
+        $('#app').classList.add('hidden');
+        $('#dashboard').classList.add('hidden');
+      }
+    }
+
+    // ===== Login / Cadastro =====
+    $$("[data-auth-tab]").forEach(btn=>btn.addEventListener('click',e=>{
+      $$("[data-auth-tab]").forEach(b=>b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      const isLogin = e.currentTarget.dataset.authTab==='login';
+      $('#loginForm').classList.toggle('hidden', !isLogin);
+      $('#signupForm').classList.toggle('hidden', isLogin);
+    }));
+
+    $('#signupForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = $('#suName').value.trim();
+      const email = $('#suEmail').value.trim().toLowerCase();
+      const p1 = $('#suPass').value, p2 = $('#suPass2').value;
+      if(p1!==p2){ alert('Senhas não conferem.'); return }
+      const user = {id:uid(), name, email};
+      ls.set(AUTH_KEY, user);
+      if(!ls.get(TASKS_KEY(email))) ls.set(TASKS_KEY(email), []);
+      ensureAuthUI();
+    });
+
+    $('#loginForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const email = $('#loginEmail').value.trim().toLowerCase();
+      const pass = $('#loginPass').value;
+      let user = ls.get(AUTH_KEY);
+      if(!user || user.email!==email){ user = {id:uid(), name: email.split('@')[0], email}; }
+      ls.set(AUTH_KEY, user);
+      if(!ls.get(TASKS_KEY(email))) ls.set(TASKS_KEY(email), []);
+      ensureAuthUI();
+    });
+
+    $('#logout').addEventListener('click', ()=>{ ls.del(AUTH_KEY); ensureAuthUI(); });
+
+    // ===== Recuperar senha (mock) =====
+    const go = (id)=>['auth','recover','app','dashboard'].forEach(s=>document.getElementById(s)?.classList.toggle('hidden', s!==id));
+    $('#fakeRecover').addEventListener('click', (e)=>{ e.preventDefault(); go('recover'); });
+    $('#backLogin').addEventListener('click', ()=> go('auth'));
+    $('#recoverForm').addEventListener('submit', (e)=>{ e.preventDefault(); alert('Se o e-mail estiver cadastrado neste dispositivo, enviaremos instruções.'); go('auth'); });
+
+    // ===== Tasks (CRUD) =====
+    function tasks(){ const email=authed().email; return ls.get(TASKS_KEY(email), []) }
+    function saveTasks(arr){ const email=authed().email; ls.set(TASKS_KEY(email), arr) }
+
+    function openTaskModal(task=null){
+      $('#taskModalTitle').textContent = task? 'Editar Tarefa':'Adicionar Tarefa';
+      $('#taskId').value = task?.id || '';
+      $('#title').value = task?.title || '';
+      $('#desc').value = task?.desc || '';
+      $('#when').value = task?.when || '';
+      $('#prio').value = task?.prio || 'média';
+      $('#markDone').classList.toggle('hidden', !task);
+      $('#deleteTask').classList.toggle('hidden', !task);
+      $('#taskModal').classList.remove('hidden');
+    }
+    const closeTaskModal = ()=> $('#taskModal').classList.add('hidden');
+
+    $('#addTop').addEventListener('click', ()=> openTaskModal());
+    $('#cancelTask').addEventListener('click', closeTaskModal);
+
+    $('#taskForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const id = $('#taskId').value || uid();
+      const data = {
+        id,
+        title: $('#title').value.trim(),
+        desc: $('#desc').value.trim(),
+        when: $('#when').value,
+        prio: $('#prio').value,
+        done: tasks().find(t=>t.id===id)?.done || false,
+        createdAt: tasks().find(t=>t.id===id)?.createdAt || new Date().toISOString()
+      };
+      if(!data.title){ alert('Título é obrigatório.'); return }
+      const list = tasks();
+      const idx = list.findIndex(t=>t.id===id);
+      if(idx>=0) list[idx]=data; else list.unshift(data);
+      saveTasks(list);
+      closeTaskModal();
+      renderList();
+    });
+
+    $('#markDone').addEventListener('click', ()=>{
+      const id=$('#taskId').value; const list = tasks();
+      const t=list.find(t=>t.id===id); if(!t) return;
+      t.done=true; saveTasks(list); closeTaskModal(); renderList();
+    });
+
+    $('#deleteTask').addEventListener('click', ()=>{
+      if(!confirm('Excluir esta tarefa?')) return;
+      const id=$('#taskId').value; const list = tasks().filter(t=>t.id!==id);
+      saveTasks(list); closeTaskModal(); renderList();
+    });
+
+    // ===== Lista / Filtros / Abas =====
+    let currentTab='pending';
+    $$("[data-tab]").forEach(b=>b.addEventListener('click', e=>{
+      $$("[data-tab]").forEach(x=>x.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      currentTab = e.currentTarget.dataset.tab;
+      renderList();
+    }));
+    $('#search').addEventListener('input', renderList);
+    $('#priorityFilter').addEventListener('change', renderList);
+
+    function renderList(){
+      const listEl = $('#list');
+      const q = $('#search').value.trim().toLowerCase();
+      const pf = $('#priorityFilter').value;
+      let list = tasks();
+      if(currentTab==='pending') list = list.filter(t=>!t.done);
+      else if(currentTab==='done') list = list.filter(t=>t.done);
+      if(q) list = list.filter(t=> [t.title,t.desc,t.prio].join(' ').toLowerCase().includes(q) );
+      if(pf) list = list.filter(t=>t.prio===pf);
+
+      listEl.innerHTML='';
+      $('#emptyState').style.display = list.length? 'none':'block';
+
+      list.sort((a,b)=> (a.done - b.done) || (a.when||'').localeCompare(b.when||''));
+
+      for(const t of list){
+        const item = document.createElement('div');
+        item.className='task';
+        item.innerHTML = `
+          <input type="checkbox" ${t.done? 'checked':''} aria-label="concluir tarefa" style="min-width:20px;min-height:20px" />
+          <div class="grow">
+            <div class="title">${t.title.replace(/[<>&]/g, s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))}</div>
+            <div class="meta">${fmtDate(t.when)} • <span class="chip ${t.prio==='alta'?'high':t.prio==='média'?'med':'low'}">${t.prio}</span></div>
+          </div>
+          <div class="row" style="gap:8px">
+            <button class="btn-outline" data-action="detail">Detalhes</button>
+            <button class="btn-outline" data-action="edit">Editar</button>
+            <button class="btn-danger" data-action="delete">Excluir</button>
+          </div>`;
+        const [chk] = item.querySelectorAll('input[type=checkbox]');
+        chk.addEventListener('change', ()=>{ t.done = chk.checked; saveTasks(tasks().map(x=>x.id===t.id?t:x)); renderList(); });
+        item.querySelector('[data-action=edit]').addEventListener('click', ()=> openTaskModal(t));
+        item.querySelector('[data-action=delete]').addEventListener('click', ()=>{ if(confirm('Excluir esta tarefa?')){ saveTasks(tasks().filter(x=>x.id!==t.id)); renderList(); } });
+        item.querySelector('[data-action=detail]').addEventListener('click', ()=> showDetail(t));
+        listEl.appendChild(item);
+      }
+    }
+
+    function showDetail(t){
+      const body = $('#detailBody');
+      body.innerHTML = '';
+      const rows = [
+        ['Título', t.title],
+        ['Descrição', t.desc || '—'],
+        ['Data/Hora', fmtDate(t.when)],
+        ['Prioridade', t.prio],
+        ['Status', t.done? 'Concluída':'Pendente']
+      ];
+      for(const [k,v] of rows){
+        const row = document.createElement('div');
+        row.className='row';
+        row.innerHTML = `<div class="chip" style="min-width:130px">${k}</div><div class="grow">${v || '—'}</div>`;
+        body.appendChild(row);
+      }
+      const actions = document.createElement('div');
+      actions.className='row'; actions.style.cssText='gap:8px;justify-content:flex-end;margin-top:10px';
+      const b1=document.createElement('button'); b1.className='btn-outline'; b1.textContent='Editar'; b1.onclick=()=>{ $('#detailModal').classList.add('hidden'); openTaskModal(t) };
+      const b2=document.createElement('button'); b2.className='btn'; b2.textContent= t.done? 'Reabrir':'Concluir'; b2.onclick=()=>{ t.done=!t.done; saveTasks(tasks().map(x=>x.id===t.id?t:x)); $('#detailModal').classList.add('hidden'); renderList(); };
+      const b3=document.createElement('button'); b3.className='btn-danger'; b3.textContent='Excluir'; b3.onclick=()=>{ if(confirm('Excluir esta tarefa?')){ saveTasks(tasks().filter(x=>x.id!==t.id)); $('#detailModal').classList.add('hidden'); renderList(); } };
+      actions.append(b1,b2,b3);
+      body.appendChild(actions);
+      $('#detailModal').classList.remove('hidden');
+    }
+    $('#detailClose').addEventListener('click', ()=> $('#detailModal').classList.add('hidden'));
+
+    // ===== Dashboard =====
+    function goDash(){ $('#app').classList.add('hidden'); $('#dashboard').classList.remove('hidden'); drawCharts(); }
+    function backList(){ $('#dashboard').classList.add('hidden'); $('#app').classList.remove('hidden'); renderList(); }
+    $('#goDashboard').addEventListener('click', goDash);
+    $('#backToList').addEventListener('click', backList);
+
+    function countStats(scope){
+      const list = tasks();
+      const now = new Date();
+      const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate()-((now.getDay()+6)%7)); startOfWeek.setHours(0,0,0,0);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      let filtered=list;
+      if(scope==='week') filtered=list.filter(t=> new Date(t.createdAt)>=startOfWeek );
+      if(scope==='month') filtered=list.filter(t=> new Date(t.createdAt)>=startOfMonth );
+      const done = filtered.filter(t=>t.done).length;
+      const pending = filtered.filter(t=>!t.done).length;
+      return {done,pending,total:done+pending};
+    }
+
+    function drawDonut(canvas, done, pending){
+      const ctx = canvas.getContext('2d');
+      const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
+      const cx=w/2, cy=h/2, r=Math.min(w,h)/2-10;
+      const total = Math.max(1, done+pending);
+      const aDone = done/total * Math.PI*2; const aPend = pending/total*Math.PI*2;
+      ctx.lineWidth = 26;
+      ctx.strokeStyle = '#1f2731'; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = '#36d399'; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2, -Math.PI/2 + aDone); ctx.stroke();
+      ctx.strokeStyle = '#ffd166'; ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2 + aDone, -Math.PI/2 + aDone + aPend); ctx.stroke();
+      ctx.fillStyle = '#e6edf3'; ctx.font = '700 20px system-ui'; ctx.textAlign='center';
+      const pct = Math.round(done/Math.max(1,done+pending)*100);
+      ctx.fillText(pct+"%", cx, cy+6);
+    }
+
+    function drawCharts(){
+      const overall = {done: tasks().filter(t=>t.done).length, pending: tasks().filter(t=>!t.done).length};
+      drawDonut($('#chartOverall'), overall.done, overall.pending);
+      $('#overallPct').textContent = `Concluído ${overall.done} • Pendente ${overall.pending}`;
+
+      const wk = countStats('week');
+      drawDonut($('#chartWeek'), wk.done, wk.pending);
+      $('#weekStats').textContent = `Você concluiu ${wk.done} tarefas nesta semana.`;
+
+      const mo = countStats('month');
+      drawDonut($('#chartMonth'), mo.done, mo.pending);
+      $('#monthStats').textContent = `Produtividade: ${mo.done} tarefas concluídas neste mês.`;
+    }
+
+    // Init
+    ensureAuthUI();
+  </script>
+</body>
+</html>
