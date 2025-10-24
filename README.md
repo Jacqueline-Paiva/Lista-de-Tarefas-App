@@ -28,14 +28,6 @@ O aplicativo foi pensado para:
 
 ---
 
-## 🖼️ Wireframe
-
-Abaixo está a imagem do **planejamento visual (wireframe)** do aplicativo:
-
-![Wireframe do Projeto](./G:\Meu Drive\IFTO\Interface Web\AppToDoList\wireframe.JPG)
-
----
-
 ## 🧑‍💻 Tecnologias Utilizadas
 
 | Tecnologia | Função |
